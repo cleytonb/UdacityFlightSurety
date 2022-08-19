@@ -6,11 +6,13 @@ pragma solidity ^0.8.16;
 // More info: https://www.nccgroup.trust/us/about-us/newsroom-and-events/blog/2018/november/smart-contract-insecurity-bad-arithmetic/
 
 import "@openzeppelin/contracts/utils/math/SafeMath.sol";
+import "./FlightSuretyData.sol";
+import "./MultipartyConsensus.sol";
 
 /************************************************** */
 /* FlightSurety Smart Contract                      */
 /************************************************** */
-contract FlightSuretyApp {
+contract FlightSuretyApp is MultipartyConsensus {
     using SafeMath for uint256; // Allow SafeMath functions to be called for all uint256 types (similar to "prototype" in Javascript)
 
     /********************************************************************************************/
@@ -35,6 +37,9 @@ contract FlightSuretyApp {
     }
     mapping(bytes32 => Flight) private flights;
 
+    FlightSuretyData dataContract;
+
+    bool operational;
  
     /********************************************************************************************/
     /*                                       FUNCTION MODIFIERS                                 */
@@ -51,7 +56,7 @@ contract FlightSuretyApp {
     modifier requireIsOperational() 
     {
          // Modify to call data contract's status
-        require(true, "Contract is currently not operational");  
+        require(operational == true, "Contract is currently not operational");  
         _;  // All modifiers require an "_" which indicates where the function body will be added
     }
 
@@ -72,18 +77,30 @@ contract FlightSuretyApp {
     * @dev Contract constructor
     *
     */
-    constructor()
+    constructor(address _dataContract)
     {
         contractOwner = msg.sender;
+        dataContract = FlightSuretyData(payable(_dataContract));
     }
 
     /********************************************************************************************/
     /*                                       UTILITY FUNCTIONS                                  */
     /********************************************************************************************/
 
-    function isOperational() public pure returns(bool) 
+    function isOperational() public view returns(bool) 
     {
-        return true;  // Modify to call data contract's status
+        return operational;  // Modify to call data contract's status
+    }
+
+
+    /**
+    * @dev Sets contract operations on/off
+    *
+    * When operational mode is disabled, all write transactions except for this one will fail
+    */    
+    function setOperatingStatus(bool mode) external requireContractOwner 
+    {
+        operational = mode;
     }
 
     /********************************************************************************************/
@@ -95,8 +112,24 @@ contract FlightSuretyApp {
     * @dev Add an airline to the registration queue
     *
     */   
-    function registerAirline() external pure returns(bool success, uint256 votes)
+    function registerAirline(address airlineAddress) external returns(bool success, uint256 votes)
     {
+        require(dataContract.isFunded(msg.sender) == true, "Only funded airlines can register new airlines");
+
+        uint256 fundedAirlinesCount = dataContract.getFundedAirlinesCount();
+        if (fundedAirlinesCount < 4)
+        {
+            dataContract.registerAirline(airlineAddress);
+            setMinimumVotes('registerAirline', fundedAirlinesCount / 2);
+        }
+        else
+        {
+            registerVote('registerAirline', airlineAddress);
+            if (isConsensusAchieved('registerAirline', airlineAddress)) {
+                dataContract.registerAirline(airlineAddress);
+                setMinimumVotes('registerAirline', fundedAirlinesCount / 2);
+            }
+        }
         return (success, 0);
     }
 
