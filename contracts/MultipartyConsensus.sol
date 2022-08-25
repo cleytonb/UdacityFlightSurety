@@ -11,17 +11,17 @@ contract MultipartyConsensus {
         mapping(address => bool) addresses;
     }
 
-    function setMinimumVotes(string memory method, uint m) public
+    function _setMinimumVotes(string memory method, uint m) internal
     {
         Ms[method] = m;
     }
 
-    function getMinimumVotes(string memory method) public view returns (uint)
+    function _getMinimumVotes(string memory method) internal view returns (uint)
     {
         return Ms[method];
     }
 
-    function registerVote(string memory method, address subject) public
+    function _registerVote(string memory method, address subject) internal
     {
         bool isDuplicate = false;
         for (uint c = 0; c < votes[method][subject].length; c++) {
@@ -35,7 +35,7 @@ contract MultipartyConsensus {
         votes[method][subject].push(msg.sender);
     }
 
-    function isConsensusAchieved(string memory method, address subject) public view returns(bool)
+    function _isConsensusAchieved(string memory method, address subject) internal view returns(bool)
     {
         if (votes[method][subject].length < Ms[method])
         {
@@ -45,7 +45,7 @@ contract MultipartyConsensus {
         return true;
     }
 
-    function resetConsensus(string memory method, address subject) public
+    function _resetConsensus(string memory method, address subject) internal
     {
         delete votes[method][subject];
     }

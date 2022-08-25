@@ -1,159 +1,99 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.16;
 
-// It's important to avoid vulnerabilities due to numeric overflow bugs
-// OpenZeppelin's SafeMath library, when used correctly, protects agains such bugs
-// More info: https://www.nccgroup.trust/us/about-us/newsroom-and-events/blog/2018/november/smart-contract-insecurity-bad-arithmetic/
-
+import "@openzeppelin/contracts/access/Ownable.sol";
+import "@openzeppelin/contracts/security/Pausable.sol";
 import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 import "./FlightSuretyData.sol";
 import "./MultipartyConsensus.sol";
 
-/************************************************** */
-/* FlightSurety Smart Contract                      */
-/************************************************** */
-contract FlightSuretyApp is MultipartyConsensus {
-    using SafeMath for uint256; // Allow SafeMath functions to be called for all uint256 types (similar to "prototype" in Javascript)
+contract FlightSuretyApp is Pausable, Ownable, MultipartyConsensus {
+    using SafeMath for uint256;
 
-    /********************************************************************************************/
-    /*                                       DATA VARIABLES                                     */
-    /********************************************************************************************/
+    FlightSuretyData dataContract;
 
-    // Flight status codees
+    constructor(address _dataContract, address firstAirline)
+    {
+        dataContract = FlightSuretyData(payable(_dataContract));
+        dataContract.authorizeContract(address(this));
+        dataContract.registerAirline(firstAirline);
+    }
+
+    // region Operating Status
+
+    function setOperatingStatus(bool paused) external onlyOwner 
+    {
+        if (paused)
+        {
+            _pause();
+        }
+        else
+        {
+            _unpause();
+        }
+    }
+
+    // endregion
+    
+    // region Airlines
+
+    uint256 private constant REQUIRED_FUNDS = 10 ether;
+    uint256 fundedAirlinesCount;
+
+    function registerAirline(address airlineAddress) external whenNotPaused returns(bool success, uint256 votes) 
+    {
+        require(dataContract.isAirlineOperational(msg.sender, REQUIRED_FUNDS) == true, "Only operational airlines can register new airlines");
+
+        if (fundedAirlinesCount < 4)
+        {
+            dataContract.registerAirline(airlineAddress);
+            _setMinimumVotes('registerAirline', fundedAirlinesCount / 2);
+        }
+        else
+        {
+            _registerVote('registerAirline', airlineAddress);
+            if (_isConsensusAchieved('registerAirline', airlineAddress)) {
+                dataContract.registerAirline(airlineAddress);
+                _setMinimumVotes('registerAirline', fundedAirlinesCount / 2);
+                _resetConsensus('registerAirline', airlineAddress);
+            }
+        }
+        return (success, 0);
+    }
+
+    function fundAirline() public payable whenNotPaused
+    {
+        require(dataContract.isAirlineRegistered(msg.sender) == true, "Airline not registered");
+        require(msg.value >= REQUIRED_FUNDS, "At least 10 ether is necessary to fund");
+
+        dataContract.fundAirline();
+        fundedAirlinesCount = fundedAirlinesCount.add(1);        
+    }
+
+    // endregion
+
+    // region Flights
+
     uint8 private constant STATUS_CODE_UNKNOWN = 0;
     uint8 private constant STATUS_CODE_ON_TIME = 10;
     uint8 private constant STATUS_CODE_LATE_AIRLINE = 20;
     uint8 private constant STATUS_CODE_LATE_WEATHER = 30;
     uint8 private constant STATUS_CODE_LATE_TECHNICAL = 40;
     uint8 private constant STATUS_CODE_LATE_OTHER = 50;
-
-    address private contractOwner;          // Account used to deploy contract
-
-    struct Flight {
-        bool isRegistered;
-        uint8 statusCode;
-        uint256 updatedTimestamp;        
-        address airline;
-    }
-    mapping(bytes32 => Flight) private flights;
-
-    FlightSuretyData dataContract;
-
-    bool operational;
- 
-    /********************************************************************************************/
-    /*                                       FUNCTION MODIFIERS                                 */
-    /********************************************************************************************/
-
-    // Modifiers help avoid duplication of code. They are typically used to validate something
-    // before a function is allowed to be executed.
-
-    /**
-    * @dev Modifier that requires the "operational" boolean variable to be "true"
-    *      This is used on all state changing functions to pause the contract in 
-    *      the event there is an issue that needs to be fixed
-    */
-    modifier requireIsOperational() 
-    {
-         // Modify to call data contract's status
-        require(operational == true, "Contract is currently not operational");  
-        _;  // All modifiers require an "_" which indicates where the function body will be added
-    }
-
-    /**
-    * @dev Modifier that requires the "ContractOwner" account to be the function caller
-    */
-    modifier requireContractOwner()
-    {
-        require(msg.sender == contractOwner, "Caller is not contract owner");
-        _;
-    }
-
-    /********************************************************************************************/
-    /*                                       CONSTRUCTOR                                        */
-    /********************************************************************************************/
-
-    /**
-    * @dev Contract constructor
-    *
-    */
-    constructor(address _dataContract)
-    {
-        contractOwner = msg.sender;
-        dataContract = FlightSuretyData(payable(_dataContract));
-    }
-
-    /********************************************************************************************/
-    /*                                       UTILITY FUNCTIONS                                  */
-    /********************************************************************************************/
-
-    function isOperational() public view returns(bool) 
-    {
-        return operational;  // Modify to call data contract's status
-    }
-
-
-    /**
-    * @dev Sets contract operations on/off
-    *
-    * When operational mode is disabled, all write transactions except for this one will fail
-    */    
-    function setOperatingStatus(bool mode) external requireContractOwner 
-    {
-        operational = mode;
-    }
-
-    /********************************************************************************************/
-    /*                                     SMART CONTRACT FUNCTIONS                             */
-    /********************************************************************************************/
-
   
-   /**
-    * @dev Add an airline to the registration queue
-    *
-    */   
-    function registerAirline(address airlineAddress) external returns(bool success, uint256 votes)
+    function registerFlight(address airline, string memory flight, uint256 timestamp) external whenNotPaused
     {
-        require(dataContract.isFunded(msg.sender) == true, "Only funded airlines can register new airlines");
+        require(timestamp > block.timestamp, "Only future flights can be registered");
+        require(dataContract.isAirlineOperational(airline, REQUIRED_FUNDS) == true, "Only flights from operational airlines can be registered");
 
-        uint256 fundedAirlinesCount = dataContract.getFundedAirlinesCount();
-        if (fundedAirlinesCount < 4)
-        {
-            dataContract.registerAirline(airlineAddress);
-            setMinimumVotes('registerAirline', fundedAirlinesCount / 2);
-        }
-        else
-        {
-            registerVote('registerAirline', airlineAddress);
-            if (isConsensusAchieved('registerAirline', airlineAddress)) {
-                dataContract.registerAirline(airlineAddress);
-                setMinimumVotes('registerAirline', fundedAirlinesCount / 2);
-            }
-        }
-        return (success, 0);
+        dataContract.registerFlight(airline, flight, timestamp);
     }
 
-
-   /**
-    * @dev Register a future flight for insuring.
-    *
-    */  
-    function registerFlight() external pure
-    {
-
-    }
-    
-   /**
-    * @dev Called after oracle has updated flight status
-    *
-    */  
-    function processFlightStatus(address airline, string memory flight, uint256 timestamp, uint8 statusCode) internal pure
-    {
+    function getAvailableFlights() external view returns (FlightSuretyData.Flight[] memory) {
+        return dataContract.getAvailableFlights();
     }
 
-
-    // Generate a request for oracles to fetch flight information
-    function fetchFlightStatus(address airline, string memory flight, uint256 timestamp) external
+    function fetchFlightStatus(address airline, string memory flight, uint256 timestamp) external whenNotPaused
     {
         uint8 index = getRandomIndex(msg.sender);
 
@@ -164,8 +104,43 @@ contract FlightSuretyApp is MultipartyConsensus {
         responseInfo.isOpen = true;
 
         emit OracleRequest(index, airline, flight, timestamp);
-    } 
+    }
+    
+    function processFlightStatus(address airline, string memory flight, uint256 timestamp, uint8 statusCode) internal whenNotPaused
+    {
+        bytes32 key = getFlightKey(airline, flight, timestamp);
 
+        ResponseInfo storage responseInfo = oracleResponses[key];
+        responseInfo.isOpen = false;
+
+        dataContract.updateFlight(airline, flight, timestamp, statusCode);
+
+        if (statusCode == STATUS_CODE_LATE_AIRLINE) {
+            dataContract.creditInsurees(airline, flight, timestamp, 150);
+        }
+    }
+
+    // endregion
+    
+    // region Insurees
+
+    function buy(address airline, string memory flight, uint256 timestamp) external payable whenNotPaused
+    {
+        require(msg.value <= 1 ether, "The maximum value that can be insured is 1 ether");
+
+        dataContract.buyInsurance(airline, flight, timestamp);
+    }
+
+    function getAvailableCredit() external view returns(uint256) {
+        return dataContract.getAvailableCredit();
+    }
+
+    function withdrawCredit() external whenNotPaused
+    {
+        dataContract.withdrawCredit();
+    }
+
+    // endregion
 
 // region ORACLE MANAGEMENT
 
