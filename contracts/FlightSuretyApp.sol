@@ -12,16 +12,14 @@ contract FlightSuretyApp is Pausable, Ownable, MultipartyConsensus {
 
     FlightSuretyData dataContract;
 
-    constructor(address _dataContract, address firstAirline)
+    constructor(address _dataContract)
     {
         dataContract = FlightSuretyData(payable(_dataContract));
-        dataContract.authorizeContract(address(this));
-        dataContract.registerAirline(firstAirline);
     }
 
     // region Operating Status
 
-    function setOperatingStatus(bool paused) external onlyOwner 
+    function setPaused(bool paused) external onlyOwner 
     {
         if (paused)
         {
@@ -42,7 +40,7 @@ contract FlightSuretyApp is Pausable, Ownable, MultipartyConsensus {
 
     function registerAirline(address airlineAddress) external whenNotPaused returns(bool success, uint256 votes) 
     {
-        require(dataContract.isAirlineOperational(msg.sender, REQUIRED_FUNDS) == true, "Only operational airlines can register new airlines");
+        require(msg.sender == owner() || dataContract.isAirlineOperational(msg.sender, REQUIRED_FUNDS) == true, "Only operational airlines can register new airlines");
 
         if (fundedAirlinesCount < 4)
         {

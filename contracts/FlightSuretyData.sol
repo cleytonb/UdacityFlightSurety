@@ -10,7 +10,7 @@ contract FlightSuretyData is Ownable, Pausable {
 
     // region Operating Status
 
-    function setOperatingStatus(bool paused) external onlyOwner 
+    function setPaused(bool paused) external onlyOwner 
     {
         if (paused)
         {
