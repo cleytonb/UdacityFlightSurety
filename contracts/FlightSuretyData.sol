@@ -67,7 +67,7 @@ contract FlightSuretyData is Ownable, Pausable {
         airlines[msg.sender].fundedAmount = airlines[msg.sender].fundedAmount.add(msg.value);
     }
 
-    function isAirlineRegistered(address airlineAddress) external view onlyAuthorizedContract returns(bool)
+    function isAirlineRegistered(address airlineAddress) external view returns(bool)
     {
         if (airlines[airlineAddress].isRegistered == false)
             return false;
@@ -75,7 +75,7 @@ contract FlightSuretyData is Ownable, Pausable {
         return true;
     }
 
-    function isAirlineOperational(address airlineAddress, uint256 requiredFunds) external view onlyAuthorizedContract returns(bool)
+    function isAirlineOperational(address airlineAddress, uint256 requiredFunds) external view returns(bool)
     {
         if (airlines[airlineAddress].isRegistered == false)
             return false;
@@ -133,7 +133,7 @@ contract FlightSuretyData is Ownable, Pausable {
         flights[key].updatedTimestamp = timestamp;
     }
 
-    function getAvailableFlights() external view onlyAuthorizedContract returns (Flight[] memory)
+    function getAvailableFlights() external view returns (Flight[] memory)
     {
         Flight[] memory result = new Flight[](flightsKeys.length);
         
@@ -190,7 +190,7 @@ contract FlightSuretyData is Ownable, Pausable {
         }
     }
 
-    function getAvailableCredit() external view onlyAuthorizedContract returns(uint256) {
+    function getAvailableCredit() external view returns(uint256) {
         return credits[msg.sender];
     }
 
