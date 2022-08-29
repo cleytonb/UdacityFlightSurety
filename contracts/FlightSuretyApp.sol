@@ -64,7 +64,7 @@ contract FlightSuretyApp is Pausable, Ownable, MultipartyConsensus {
         require(dataContract.isAirlineRegistered(msg.sender) == true, "Airline not registered");
         require(msg.value >= REQUIRED_FUNDS, "At least 10 ether is necessary to fund");
 
-        dataContract.fundAirline();
+        dataContract.fundAirline{ value: msg.value }(msg.sender);
         fundedAirlinesCount = fundedAirlinesCount.add(1);        
     }
 

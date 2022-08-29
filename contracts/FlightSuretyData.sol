@@ -60,19 +60,16 @@ contract FlightSuretyData is Ownable, Pausable {
         airlines[airlineAddress].isRegistered = true;
     }
 
-    function fundAirline() external payable whenNotPaused onlyAuthorizedContract
+    function fundAirline(address airlineAddress) external payable whenNotPaused onlyAuthorizedContract
     {
-        require(airlines[msg.sender].isRegistered == true, "Airline not registered");
+        require(airlines[airlineAddress].isRegistered == true, "Airline not registered");
 
-        airlines[msg.sender].fundedAmount = airlines[msg.sender].fundedAmount.add(msg.value);
+        airlines[airlineAddress].fundedAmount = airlines[airlineAddress].fundedAmount.add(msg.value);
     }
 
     function isAirlineRegistered(address airlineAddress) external view returns(bool)
     {
-        if (airlines[airlineAddress].isRegistered == false)
-            return false;
-        
-        return true;
+        return airlines[airlineAddress].isRegistered;
     }
 
     function isAirlineOperational(address airlineAddress, uint256 requiredFunds) external view returns(bool)

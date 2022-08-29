@@ -111,7 +111,7 @@ contract('Flight Surety Pausable Tests', async (accounts) => {
       let reverted = false;
       try 
       {
-        await config.flightSuretyApp.fundAirline(newAirline, {from: config.firstAirline, value: web3.utils.toWei("1", "ether")});
+        await config.flightSuretyApp.fundAirline(newAirline, {from: config.airlines[0], value: web3.utils.toWei("1", "ether")});
       }
       catch(e) {
           reverted = true;
