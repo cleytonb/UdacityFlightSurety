@@ -38,25 +38,22 @@ contract FlightSuretyApp is Pausable, Ownable, MultipartyConsensus {
     uint256 private constant REQUIRED_FUNDS = 10 ether;
     uint256 fundedAirlinesCount;
 
-    function registerAirline(address airlineAddress) external whenNotPaused returns(bool success, uint256 votes) 
+    function registerAirline(address airlineAddress) external whenNotPaused
     {
         require(msg.sender == owner() || dataContract.isAirlineOperational(msg.sender, REQUIRED_FUNDS) == true, "Only operational airlines can register new airlines");
 
         if (fundedAirlinesCount < 4)
         {
             dataContract.registerAirline(airlineAddress);
-            _setMinimumVotes('registerAirline', fundedAirlinesCount / 2);
         }
         else
         {
             _registerVote('registerAirline', airlineAddress);
             if (_isConsensusAchieved('registerAirline', airlineAddress)) {
                 dataContract.registerAirline(airlineAddress);
-                _setMinimumVotes('registerAirline', fundedAirlinesCount / 2);
                 _resetConsensus('registerAirline', airlineAddress);
             }
         }
-        return (success, 0);
     }
 
     function fundAirline() public payable whenNotPaused
@@ -65,7 +62,8 @@ contract FlightSuretyApp is Pausable, Ownable, MultipartyConsensus {
         require(msg.value >= REQUIRED_FUNDS, "At least 10 ether is necessary to fund");
 
         dataContract.fundAirline{ value: msg.value }(msg.sender);
-        fundedAirlinesCount = fundedAirlinesCount.add(1);        
+        fundedAirlinesCount = fundedAirlinesCount.add(1);
+        _setMinimumVotes('registerAirline', fundedAirlinesCount.div(2));
     }
 
     // endregion

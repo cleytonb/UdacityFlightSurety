@@ -5,12 +5,6 @@ contract MultipartyConsensus {
     mapping(string => uint) Ms;
     mapping(string => mapping(address => address[])) votes;
 
-    struct Votes
-    {
-        uint total;
-        mapping(address => bool) addresses;
-    }
-
     function _setMinimumVotes(string memory method, uint m) internal
     {
         Ms[method] = m;

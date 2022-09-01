@@ -125,7 +125,55 @@ contract('Flight Surety Airline Tests', async (accounts) => {
 
     // ASSERT
     assert.equal(result, true, "Funded airline should be able to register another airline");
+  });
 
+  it('(airline) needs multiparty consensus if more than 4 operational airlines', async () => {
+    
+    // ARRANGE
+    let firstAirline = config.airlines[0];
+    let secondAirline = config.airlines[1];
+    let thirdAirline = config.airlines[2];
+    let fourthAirline = config.airlines[3];
+    let newAirline = config.airlines[4];
+    
+    await config.flightSuretyApp.registerAirline(thirdAirline, {from: firstAirline});
+    await config.flightSuretyApp.registerAirline(fourthAirline, {from: firstAirline});
+
+    await config.flightSuretyApp.fundAirline({ from: secondAirline, value: web3.utils.toWei('10', 'ether') });
+    await config.flightSuretyApp.fundAirline({ from: thirdAirline, value: web3.utils.toWei('10', 'ether') });
+    await config.flightSuretyApp.fundAirline({ from: fourthAirline, value: web3.utils.toWei('10', 'ether') });
+
+    // ACT
+    await config.flightSuretyApp.registerAirline(newAirline, {from: firstAirline});
+    let resultAfterOneRegister = await config.flightSuretyData.isAirlineRegistered.call(newAirline); 
+
+    await config.flightSuretyApp.registerAirline(newAirline, {from: secondAirline});
+    let resultAfterSecondRegister = await config.flightSuretyData.isAirlineRegistered.call(newAirline); 
+
+    // ASSERT
+    assert.equal(resultAfterOneRegister, false, "Airline should not be registered before 50% of votes");
+    assert.equal(resultAfterSecondRegister, true, "Airline should be registered after 50% of votes");
+  });
+
+  it('(airline) avoid multiple votes in multiparty consensus', async () => {
+    
+    // ARRANGE
+    let firstAirline = config.airlines[0];
+    let newAirline = config.airlines[5];
+
+    let errorThrown = false;
+
+    // ACT
+    try {
+      await config.flightSuretyApp.registerAirline(newAirline, {from: firstAirline});
+      await config.flightSuretyApp.registerAirline(newAirline, {from: firstAirline});
+    }
+    catch(e) {
+      errorThrown = true;
+    }
+
+    // ASSERT
+    assert.equal(errorThrown, true, "Error should be thrown if same airline tries to vote twice in multiparty consensus");
   });
  
 
