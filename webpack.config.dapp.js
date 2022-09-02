@@ -1,49 +1,67 @@
+const MiniCssExtractPlugin = require('mini-css-extract-plugin');
 const path = require("path");
-const HtmlWebpackPlugin = require("html-webpack-plugin");
 
 module.exports = {
-  entry: ['babel-polyfill', path.join(__dirname, "src/dapp")],
+  entry: {
+    bundle: ["./src/dapp/app.js"]
+  },
+	resolve: {
+		alias: {
+			svelte: path.dirname(require.resolve('svelte/package.json'))
+		},
+		extensions: ['.mjs', '.js', '.svelte'],
+		mainFields: ['svelte', 'browser', 'module', 'main']
+	},
   output: {
-    path: path.join(__dirname, "prod/dapp"),
-    filename: "bundle.js"
+    path: __dirname + "/public",
+    filename: "[name].js",
+    chunkFilename: "[name].[id].js"
   },
   module: {
     rules: [
-    {
-        test: /\.(js|jsx)$/,
-        use: "babel-loader",
-        exclude: /node_modules/
-      },
+			{
+				test: /\.svelte$/,
+				use: {
+					loader: 'svelte-loader',
+					options: {
+						compilerOptions: {
+							dev: true
+						},
+						emitCss: false,
+						hotReload: true
+					}
+				}
+			},
       {
         test: /\.css$/,
-        use: ["style-loader", "css-loader"]
+        use: [ MiniCssExtractPlugin.loader, "css-loader"]
       },
       {
         test: /\.(png|svg|jpg|jpeg|gif)$/i,
         type: 'asset/resource'
       },
-      {
-        test: /\.html$/,
-        use: "html-loader",
-        exclude: /node_modules/
-      }
+			{
+				// required to prevent errors from Svelte on Webpack 5+
+				test: /node_modules\/svelte\/.*\.mjs$/,
+				resolve: {
+					fullySpecified: false
+				}
+			}
     ]
   },
-  plugins: [
-    new HtmlWebpackPlugin({ 
-      template: path.join(__dirname, "src/dapp/index.html")
-    })
-  ],
-  resolve: {
-    extensions: [".js"]
-  },
+	plugins: [
+		new MiniCssExtractPlugin({
+			filename: '[name].css'
+		})
+	],
   devServer: {
     port: 8000,
-    static: {
-      directory: path.join(__dirname, "dapp")
-    },
-    devMiddleware: {
-      stats: "minimal"
-    }
+    hot: true
+    // static: {
+    //   directory: path.join(__dirname, "dapp")
+    // },
+    // devMiddleware: {
+    //   stats: "minimal"
+    // }
   }
 };
