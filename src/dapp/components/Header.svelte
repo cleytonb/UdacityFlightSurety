@@ -1,7 +1,7 @@
 <script>
-  import { account } from "../stores";
-  import SetOperationStatus from "./SetOperationStatus.svelte";
-  import AccountDropdown from "./AccountDropdown.svelte";
+  import { account } from "@/stores/accounts";
+  import SetOperationStatus from "@/components/SetOperationStatus.svelte";
+  import AccountDropdown from "@/components/AccountDropdown.svelte";
 </script>
 
 <header class="p-3 text-bg-dark">

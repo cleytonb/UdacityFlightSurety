@@ -1,6 +1,6 @@
 <script>
-  import { account, accounts } from "../stores";
-  import FriendlyAddress from './FriendlyAddress.svelte';
+  import { account, accounts } from "@/stores/accounts";
+  import FriendlyAddress from '@/components/FriendlyAddress.svelte';
 
   let opened = false;
 

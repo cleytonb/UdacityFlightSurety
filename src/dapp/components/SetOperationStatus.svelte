@@ -1,5 +1,5 @@
 <script>
-    import { operatingStatus, methods } from '../stores';
+    import { operatingStatus, methods } from '@/stores/operatingStatus';
 </script>
 
 {#if $operatingStatus}

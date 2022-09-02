@@ -83,6 +83,11 @@ contract FlightSuretyData is Ownable, Pausable {
         return true;
     }
 
+    function getAirline(address airlineAddress) external view returns(Airline memory)
+    {
+        return airlines[airlineAddress];
+    }
+
     // endregion
 
     // region Flights

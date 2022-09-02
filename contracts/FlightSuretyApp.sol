@@ -66,6 +66,21 @@ contract FlightSuretyApp is Pausable, Ownable, MultipartyConsensus {
         _setMinimumVotes('registerAirline', fundedAirlinesCount.div(2));
     }
 
+    function getAirlineStatus(address airlineAddress) external view returns(bool, bool)
+    {
+        FlightSuretyData.Airline memory airline = dataContract.getAirline(airlineAddress);
+
+        bool registered = airline.isRegistered;
+        bool operational = false;
+        if (airline.fundedAmount >= REQUIRED_FUNDS) {
+            operational = true;
+        }
+        return (
+            registered,
+            operational
+        );
+    }
+
     // endregion
 
     // region Flights

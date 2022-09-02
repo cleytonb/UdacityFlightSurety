@@ -9,14 +9,8 @@ const flightSuretyApp = new web3.eth.Contract(
   config.appAddress
 );
 
-window.flightSuretyApp = flightSuretyApp;
-flightSuretyApp.events.Paused()
-.on('data', event => console.log(event))
-.on('changed', changed => console.warn(changed))
-.on('error', err => console.error(err))
-.on('connected', str => console.info(str))
-
 export default {
+  events: flightSuretyApp.events,
   async getAccounts() {
     return await web3.eth.getAccounts();
   },
@@ -25,6 +19,15 @@ export default {
   },
   async setPaused(account, paused) {
     return await flightSuretyApp.methods.setPaused(paused).send({ from: account });
+  },
+  async getAirlineStatus(account) {
+    return await flightSuretyApp.methods.getAirlineStatus(account).call({ from: account });
+  },
+  async fundAirline(account) {
+    return await flightSuretyApp.methods.fundAirline().send({ from: account, value: web3.utils.toWei('10', 'ether') });
+  },
+  async registerAirline(account, newAirline) {
+    return await flightSuretyApp.methods.registerAirline(newAirline).send({ from: account });
   }
 };
 

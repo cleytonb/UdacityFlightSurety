@@ -16,7 +16,7 @@ module.exports = async function(deployer, _, accounts)
     await appInstance.registerAirline(accounts[1], { from: accounts[0] });
     let config = {
         localhost: {
-            url: 'http://localhost:8545',
+            url: 'ws://localhost:8545',
             dataAddress: FlightSuretyData.address,
             appAddress: FlightSuretyApp.address
         }
