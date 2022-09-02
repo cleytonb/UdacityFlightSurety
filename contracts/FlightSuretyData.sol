@@ -167,7 +167,7 @@ contract FlightSuretyData is Ownable, Pausable {
 
         require(insurances[flightKey][msg.sender].value == 0, "Insurance has already been bought");
         require(flights[flightKey].isRegistered == true, "Flight not registered");
-        require(flights[flightKey].statusCode == STATUS_CODE_ON_TIME, "Flight is not on time");
+        require(flights[flightKey].statusCode <= STATUS_CODE_ON_TIME, "Flight is not on time");
 
         insurances[flightKey][msg.sender].value = msg.value;
         insurees[flightKey].push(msg.sender);
