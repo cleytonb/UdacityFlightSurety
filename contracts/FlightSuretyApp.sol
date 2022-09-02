@@ -79,6 +79,7 @@ contract FlightSuretyApp is Pausable, Ownable, MultipartyConsensus {
   
     function registerFlight(address airline, string memory flight, uint256 timestamp) external whenNotPaused
     {
+        require(msg.sender == owner() || dataContract.isAirlineOperational(msg.sender, REQUIRED_FUNDS) == true, "Only operational airlines can register new flights");
         require(timestamp > block.timestamp, "Only future flights can be registered");
         require(dataContract.isAirlineOperational(airline, REQUIRED_FUNDS) == true, "Only flights from operational airlines can be registered");
 
